@@ -1,0 +1,79 @@
+// Prisma schema for clozr. Store, Product, Variant, Score, Suggestion, PublishLog.
+// Shopify-first; keep IDs/timestamps and storeId relations for future platforms.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  platform  String   // e.g. "shopify"
+  shop      String?  // store identifier (e.g. myshop.myshopify.com)
+  accessToken String?
+  products  Product[]
+  scores    Score[]
+  publishLogs PublishLog[]
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  externalId String? // platform product id
+  title     String?
+  bodyHtml  String?
+  variants  Variant[]
+  scores    Score[]
+  suggestions Suggestion[]
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  externalId String?
+  title     String?
+  sku      String?
+}
+
+model Score {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  value     Float
+}
+
+model Suggestion {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  field       String   // e.g. "title", "description"
+  suggestedValue String?
+  publishLogs PublishLog[]
+}
+
+model PublishLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  success      Boolean
+  message      String?
+}
