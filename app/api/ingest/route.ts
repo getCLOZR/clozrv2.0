@@ -1,9 +1,36 @@
 /**
- * Ingest products from a connected store. Triggered after connect or on-demand sync.
+ * POST /api/ingest — Ingest catalog from a connected store. Body: { storeId: string }.
  */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { runIngest } from "@/src/server/services/ingestService";
 
-export async function POST() {
-  // TODO: Validate storeId, call ingestService, return sync status
-  return NextResponse.json({ todo: "ingest" });
+export async function POST(request: NextRequest) {
+  let body: { storeId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+
+  const storeId = body?.storeId;
+  if (typeof storeId !== "string" || !storeId.trim()) {
+    return NextResponse.json(
+      { error: "Missing or invalid storeId" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const result = await runIngest(storeId.trim());
+    return NextResponse.json(result);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Ingest failed";
+    return NextResponse.json(
+      { error: message },
+      { status: 400 }
+    );
+  }
 }

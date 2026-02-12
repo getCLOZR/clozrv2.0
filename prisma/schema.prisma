@@ -11,40 +11,57 @@ datasource db {
 }
 
 model Store {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  platform  String   // e.g. "shopify"
-  shop      String?  // store identifier (e.g. myshop.myshopify.com)
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  installedAt DateTime? // when OAuth completed
+  platform    String    // e.g. "shopify"
+  shop        String    // shop domain (e.g. mystore.myshopify.com)
   accessToken String?
-  products  Product[]
-  scores    Score[]
+  products    Product[]
+  scores      Score[]
   publishLogs PublishLog[]
+
+  @@unique([platform, shop])
 }
 
 model Product {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  externalId String? // platform product id
-  title     String?
-  bodyHtml  String?
-  variants  Variant[]
-  scores    Score[]
-  suggestions Suggestion[]
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  externalId      String?  // platform product id (e.g. Shopify product id)
+  title           String?
+  bodyHtml        String?
+  handle          String?
+  vendor          String?
+  status          String?
+  descriptionText String? // plain text from body_html
+  imageUrls       Json?   // string[]
+  rawJson         Json?   // raw API payload (optional)
+  normalizedJson  Json?   // CPS snapshot
+  variants        Variant[]
+  scores          Score[]
+  suggestions     Suggestion[]
+
+  @@unique([storeId, externalId])
 }
 
 model Variant {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  externalId String?
-  title     String?
-  sku      String?
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  externalId  String?  // platform variant id
+  title       String?
+  sku         String?
+  price       Float?
+  inventoryQty Int?
+  optionsJson Json?    // e.g. ["Size", "Color"] or option1/2/3 values
+
+  @@unique([productId, externalId])
 }
 
 model Score {
