@@ -65,13 +65,26 @@ model Variant {
 }
 
 model Score {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  value     Float
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  storeId          String
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  value            Float?   // legacy; prefer overall
+  overall          Float
+  coverage         Float
+  consistency      Float
+  structure        Float
+  eligibleSearch   Boolean
+  eligibleCheckout Boolean
+  blockersJson     Json?    // string[]
+  warningsJson     Json?    // string[]
+  reasonsJson      Json?    // string[]
+  signalsJson      Json?    // Record<string, unknown>
+
+  @@unique([productId])
 }
 
 model Suggestion {
