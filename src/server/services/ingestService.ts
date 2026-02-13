@@ -27,6 +27,22 @@ export async function runIngest(storeId: string): Promise<IngestResult> {
 
   for (const { cps, raw } of results) {
     const platformProductId = String(raw.id);
+    // Build minimal CPS object here so DB never gets raw in normalizedJson (connector may return refs).
+    const normalizedJson = JSON.parse(
+      JSON.stringify({
+        id: cps.id,
+        title: cps.title,
+        descriptionText: cps.descriptionText,
+        imageUrls: cps.imageUrls,
+        variants: cps.variants.map((v) => ({
+          id: v.id,
+          sku: v.sku,
+          price: v.price,
+          inventory_quantity: v.inventory_quantity,
+          options: v.options,
+        })),
+      })
+    ) as Record<string, unknown>;
     const productData = {
       title: raw.title ?? null,
       bodyHtml: raw.body_html ?? null,
@@ -35,54 +51,46 @@ export async function runIngest(storeId: string): Promise<IngestResult> {
       status: raw.status ?? null,
       descriptionText: cps.descriptionText,
       imageUrls: cps.imageUrls.length ? cps.imageUrls : undefined,
-      rawJson: raw as unknown as Record<string, unknown>,
-      normalizedJson: cps as unknown as Record<string, unknown>,
+      rawJson: JSON.parse(JSON.stringify(raw)) as Record<string, unknown>,
+      normalizedJson,
     };
 
-    const product = await db.product.upsert({
-      where: {
-        storeId_externalId: { storeId, externalId: platformProductId },
-      },
-      create: {
-        storeId,
-        externalId: platformProductId,
-        ...productData,
-      },
-      update: productData,
+    const existingProduct = await db.product.findFirst({
+      where: { storeId, externalId: platformProductId },
     });
-
-    if (product.createdAt.getTime() === product.updatedAt.getTime()) {
-      productsCreated++;
-    } else {
-      productsUpdated++;
-    }
+    const product = existingProduct
+      ? await db.product.update({
+          where: { id: existingProduct.id },
+          data: productData,
+        })
+      : await db.product.create({
+          data: { storeId, externalId: platformProductId, ...productData },
+        });
+    if (existingProduct) productsUpdated++;
+    else productsCreated++;
 
     for (const v of cps.variants) {
       const platformVariantId = v.id;
-      const priceNum = v.price != null ? parseFloat(v.price) : null;
       const variantData = {
         sku: v.sku ?? null,
-        price: priceNum,
+        price: v.price,
         inventoryQty: v.inventory_quantity,
         optionsJson: v.options.length ? v.options : undefined,
       };
-
-      const variant = await db.variant.upsert({
-        where: {
-          productId_externalId: { productId: product.id, externalId: platformVariantId },
-        },
-        create: {
-          productId: product.id,
-          externalId: platformVariantId,
-          ...variantData,
-        },
-        update: variantData,
+      const existingVariant = await db.variant.findFirst({
+        where: { productId: product.id, externalId: platformVariantId },
       });
-
-      if (variant.createdAt.getTime() === variant.updatedAt.getTime()) {
-        variantsCreated++;
-      } else {
+      if (existingVariant) {
+        await db.variant.update({
+          where: { id: existingVariant.id },
+          data: variantData,
+        });
         variantsUpdated++;
+      } else {
+        await db.variant.create({
+          data: { productId: product.id, externalId: platformVariantId, ...variantData },
+        });
+        variantsCreated++;
       }
     }
   }

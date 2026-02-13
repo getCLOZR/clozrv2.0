@@ -5,7 +5,7 @@
 export interface CpsVariant {
   id: string;
   sku: string | null;
-  price: string | null;
+  price: number | null;
   inventory_quantity: number | null;
   options: string[];
 }

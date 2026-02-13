@@ -47,20 +47,24 @@ function variantOptions(v: ShopifyProductRaw["variants"][0]): string[] {
   return opts;
 }
 
-/** Map one Shopify product to CPS. */
+/** Build minimal CPS product: only id, title, descriptionText, imageUrls (string[]), variants (id, sku, price, inventory_quantity, options). No Shopify fields. */
 function toCpsProduct(p: ShopifyProductRaw): CpsProduct {
+  const imageUrls: string[] = (p.images ?? [])
+    .map((img) => ("src" in img && img.src ? String(img.src) : ""))
+    .filter(Boolean);
+  const variants: CpsProduct["variants"] = (p.variants ?? []).map((v) => ({
+    id: String(v.id),
+    sku: v.sku ?? null,
+    price: v.price ? Number(v.price) : null,
+    inventory_quantity: v.inventory_quantity ?? null,
+    options: variantOptions(v),
+  }));
   return {
     id: String(p.id),
     title: p.title ?? null,
     descriptionText: stripHtml(p.body_html),
-    imageUrls: (p.images ?? []).map((img) => img.src ?? "").filter(Boolean),
-    variants: (p.variants ?? []).map((v) => ({
-      id: String(v.id),
-      sku: v.sku ?? null,
-      price: v.price ?? null,
-      inventory_quantity: v.inventory_quantity ?? null,
-      options: variantOptions(v),
-    })),
+    imageUrls,
+    variants,
   };
 }
 
@@ -111,11 +115,15 @@ export interface IngestProductResult {
 
 /**
  * Fetch all products with variants and images (paginate limit=250), return CPS + raw per product.
+ * cps contains ONLY: id, title, descriptionText, imageUrls (string[]), variants (id, sku, price, inventory_quantity, options).
  */
 export async function ingestProducts(
   shop: string,
   accessToken: string
 ): Promise<IngestProductResult[]> {
   const products = await fetchAllProducts(shop, accessToken);
-  return products.map((p) => ({ cps: toCpsProduct(p), raw: p }));
+  return products.map((p) => ({
+    cps: toCpsProduct(p),
+    raw: p,
+  }));
 }
