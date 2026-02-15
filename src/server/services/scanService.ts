@@ -1,6 +1,7 @@
 /**
  * Scan service. Load products, run scoring + eligibility, upsert Score, return summary.
  */
+import { Prisma } from "@prisma/client";
 import { db } from "@/src/db";
 import type { CpsProduct } from "@/src/core/schema/cps";
 import { parseJson } from "@/src/core/utils/parseJson";
@@ -59,10 +60,10 @@ export async function runScan(storeId: string): Promise<ScanResult> {
       structure: scoreResult.structure,
       eligibleSearch: eligibilityResult.recommended_is_eligible_search,
       eligibleCheckout: eligibilityResult.recommended_is_eligible_checkout,
-      blockersJson: scoreResult.blockers,
-      warningsJson: scoreResult.warnings,
-      reasonsJson: eligibilityResult.reasons,
-      signalsJson: scoreResult.signals,
+      blockersJson: scoreResult.blockers as Prisma.InputJsonValue,
+      warningsJson: scoreResult.warnings as Prisma.InputJsonValue,
+      reasonsJson: eligibilityResult.reasons as Prisma.InputJsonValue,
+      signalsJson: scoreResult.signals as Prisma.InputJsonValue,
     };
 
     const existing = await db.score.findFirst({

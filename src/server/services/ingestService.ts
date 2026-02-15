@@ -1,6 +1,7 @@
 /**
  * Ingest service. Load store, call connector ingest, upsert products + variants, return counts.
  */
+import { Prisma } from "@prisma/client";
 import { db } from "@/src/db";
 import { ingestProducts } from "@/src/connectors/shopify/ingest";
 
@@ -51,8 +52,8 @@ export async function runIngest(storeId: string): Promise<IngestResult> {
       status: raw.status ?? null,
       descriptionText: cps.descriptionText,
       imageUrls: cps.imageUrls.length ? cps.imageUrls : undefined,
-      rawJson: JSON.parse(JSON.stringify(raw)) as Record<string, unknown>,
-      normalizedJson,
+      rawJson: JSON.parse(JSON.stringify(raw)) as Prisma.InputJsonValue,
+      normalizedJson: normalizedJson as Prisma.InputJsonValue,
     };
 
     const existingProduct = await db.product.findFirst({

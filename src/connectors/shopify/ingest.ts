@@ -14,6 +14,17 @@ function stripHtml(html: string | null | undefined): string | null {
     .trim() || null;
 }
 
+/** Single variant from Shopify product. */
+export type ShopifyVariantRaw = {
+  id: number;
+  sku: string | null;
+  price: string | null;
+  inventory_quantity: number | null;
+  option1: string | null;
+  option2: string | null;
+  option3: string | null;
+};
+
 /** Shopify REST product (from list). Exported for raw storage. */
 export interface ShopifyProductRaw {
   id: number;
@@ -22,15 +33,7 @@ export interface ShopifyProductRaw {
   handle: string | null;
   vendor: string | null;
   status: string | null;
-  variants?: Array<{
-    id: number;
-    sku: string | null;
-    price: string | null;
-    inventory_quantity: number | null;
-    option1: string | null;
-    option2: string | null;
-    option3: string | null;
-  }>;
+  variants?: ShopifyVariantRaw[];
   images?: Array<{ src?: string; id?: number }>;
 }
 
@@ -39,7 +42,7 @@ interface ProductsResponse {
 }
 
 /** Build options array from variant option1/2/3. */
-function variantOptions(v: ShopifyProductRaw["variants"][0]): string[] {
+function variantOptions(v: ShopifyVariantRaw): string[] {
   const opts: string[] = [];
   if (v.option1) opts.push(v.option1);
   if (v.option2) opts.push(v.option2);

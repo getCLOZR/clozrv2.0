@@ -1,3 +1,5 @@
+import "./globals.css";
+
 /**
  * Root layout for the clozr app. Wraps all routes with shared providers and metadata.
  */

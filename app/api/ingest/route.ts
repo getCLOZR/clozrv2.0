@@ -2,6 +2,8 @@
  * POST /api/ingest — Ingest catalog from a connected store. Body: { storeId: string }.
  */
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { runIngest } from "@/src/server/services/ingestService";
 
 export async function POST(request: NextRequest) {
